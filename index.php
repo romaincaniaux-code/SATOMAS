@@ -16,9 +16,19 @@ switch ($page) {
     case 'connexion':
         require 'CONTROLLER/connexion_controller.php';
         break;
+
+    case 'catalogue':
+        require 'CONTROLLER/catalogue_controller.php';
+        break;
+
     case 'deconnexion':
         include 'MODEL/deconnexion.php';
         break;
+
+    case 'fiche':
+        require 'CONTROLLER/fiche_controller.php';
+        break;
+        
     default:
         include 'CONTROLLER/accueil_controller.php';
         break;
