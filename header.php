@@ -9,6 +9,7 @@
 <?php if (isset($_SESSION['utilisateur'])) { ?>
     <nav>
         <a href="index.php?page=accueil">Accueil</a> |
+        <a href="index.php?page=catalogue">Catalogue</a> |
         <a href="index.php?page=deconnexion">Déconnexion</a>
     </nav>
 <?php } ?>
