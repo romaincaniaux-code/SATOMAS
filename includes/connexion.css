@@ -1,0 +1,171 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  background: #f3f5f8;
+  color: #10243e;
+  font-family: Arial, sans-serif;
+}
+
+.login-main {
+  position: relative;
+  overflow: hidden;
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 16px;
+}
+
+.plane-animation {
+  position: absolute;
+  top: clamp(16px, 4vh, 32px);
+  left: 0;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  animation: plane-cross 12s linear infinite;
+  pointer-events: none;
+}
+
+.plane-animation img {
+  display: block;
+  width: clamp(280px, 60vw, 800px);
+  max-width: calc(100vw - 32px);
+  height: auto;
+}
+
+.login-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 410px;
+  padding: 36px;
+  background: white;
+  border: 1px solid #dce3ed;
+  border-radius: 14px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.brand img {
+  display: block;
+  width: 100%;
+  max-width: 300px;
+  max-height: 110px;
+  object-fit: contain;
+}
+
+h1 {
+  margin: 0;
+  font-size: 26px;
+}
+
+.description {
+  margin: 16px 0;
+  color: #758197;
+  font-size: 14px;
+}
+
+.error {
+  margin: 0 0 12px;
+  color: #e54848;
+  font-size: 13px;
+}
+
+form {
+  margin: 0;
+}
+
+label {
+  display: block;
+  margin: 0 0 6px;
+  font-size: 13px;
+}
+
+input {
+  width: 100%;
+  height: 39px;
+  margin-bottom: 16px;
+  padding: 0 12px;
+  border: 1px solid #dce3ed;
+  border-radius: 7px;
+  color: #10243e;
+  font: inherit;
+  font-size: 13px;
+}
+
+button {
+  width: 100%;
+  min-height: 38px;
+  border: 0;
+  border-radius: 7px;
+  background: #2e62a8;
+  color: white;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #244f89;
+}
+
+.login-note {
+  margin: 16px 0 0;
+  color: #758197;
+  font-size: 11px;
+}
+
+.login-footer {
+  min-height: 59px;
+  padding: 20px max(16px, calc((100% - 1164px) / 2));
+  background: #0b223d;
+  color: #c5cfdd;
+  font-size: 11px;
+}
+
+@keyframes plane-cross {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(100vw);
+  }
+}
+
+@media (max-width: 480px) {
+  .login-main {
+    padding: 24px 16px;
+  }
+
+  .login-card {
+    padding: 26px 22px;
+  }
+
+  .login-footer {
+    padding: 20px 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plane-animation {
+    animation: none;
+  }
+
+  .plane-animation {
+    left: 16px;
+  }
+}

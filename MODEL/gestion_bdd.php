@@ -103,13 +103,14 @@ function obtenirInterventionParId($idIntervention)
     global $bdd;
 
     $requete = $bdd->prepare(
-        'SELECT i.id_intervention, i.intitule, i.description, i.date_intervention,
-                i.heure_debut, i.heure_fin, i.lieu, i.statut,
-                c.nom AS categorie, a.modele, a.immatriculation
-         FROM intervention i
-         INNER JOIN categorie c ON i.id_categorie = c.id_categorie
-         INNER JOIN avion a ON i.id_avion = a.id_avion
-         WHERE i.id_intervention = ?'
+        'SELECT intervention.id_intervention, intervention.intitule, intervention.description,
+                intervention.date_intervention, intervention.heure_debut, intervention.heure_fin,
+                intervention.lieu, intervention.statut,
+                categorie.nom AS categorie, avion.modele, avion.immatriculation
+         FROM intervention
+         INNER JOIN categorie ON intervention.id_categorie = categorie.id_categorie
+         INNER JOIN avion ON intervention.id_avion = avion.id_avion
+         WHERE intervention.id_intervention = ?'
     );
     $requete->execute([$idIntervention]);
 
@@ -117,19 +118,20 @@ function obtenirInterventionParId($idIntervention)
 }
 
 // ! Le salarié a-t-il déjà une intervention attribuée qui chevauche ce créneau ?
+//* AntiSlach Permet d'éviter que php considère les interventions annulées ou terminées comme des chevauchements
 function salarieOccupe($idUtilisateur, $date, $heureDebut, $heureFin)
 {
     global $bdd;
 
     $requete = $bdd->prepare(
         'SELECT COUNT(*)
-         FROM affectation af
-         INNER JOIN intervention i ON af.id_intervention = i.id_intervention
-         WHERE af.id_utilisateur = :utilisateur
-           AND i.date_intervention = :date
-           AND i.statut = \'attribuee\'
-           AND i.heure_debut < :fin
-           AND i.heure_fin > :debut'
+         FROM affectation
+         INNER JOIN intervention ON affectation.id_intervention = intervention.id_intervention
+         WHERE affectation.id_utilisateur = :utilisateur
+           AND intervention.date_intervention = :date
+           AND intervention.statut = \'attribuee\' 
+           AND intervention.heure_debut < :fin
+           AND intervention.heure_fin > :debut'
     );
     $requete->execute([
         'utilisateur' => $idUtilisateur,
@@ -141,6 +143,26 @@ function salarieOccupe($idUtilisateur, $date, $heureDebut, $heureFin)
     return $requete->fetchColumn() > 0;
 }
 
+// ! Interventions attribuées à un salarié pour un jour donné
+function obtenirPlanning($idUtilisateur, $date)
+{
+    global $bdd;
+
+    $requete = $bdd->prepare(
+        'SELECT intervention.id_intervention, intervention.intitule, intervention.heure_debut,
+                intervention.heure_fin, intervention.lieu, intervention.statut,
+                avion.modele, avion.immatriculation
+         FROM affectation
+         INNER JOIN intervention ON affectation.id_intervention = intervention.id_intervention
+         INNER JOIN avion ON intervention.id_avion = avion.id_avion
+         WHERE affectation.id_utilisateur = :utilisateur
+           AND intervention.date_intervention = :date
+         ORDER BY intervention.heure_debut ASC'
+    );
+    $requete->execute(['utilisateur' => $idUtilisateur, 'date' => $date]);
+
+    return $requete->fetchAll(PDO::FETCH_ASSOC);
+}
 // ! Le salarié accepte une intervention : renvoie true, ou un message d'erreur
 function accepterIntervention($idUtilisateur, $idIntervention)
 {
@@ -166,4 +188,72 @@ function accepterIntervention($idUtilisateur, $idIntervention)
     $requete->execute([$idIntervention]);
 
     return true;
+}
+
+// ! Le salarié annule son intervention : renvoie true, ou un message d'erreur
+function annulerIntervention($idUtilisateur, $idIntervention)
+{
+    global $bdd;
+
+    $intervention = obtenirInterventionParId($idIntervention);
+
+    if (!$intervention) {
+        return 'Intervention introuvable.';
+    }
+
+    // ! L'intervention doit bien être attribuée à ce salarié
+    $requete = $bdd->prepare('SELECT COUNT(*) FROM affectation WHERE id_utilisateur = ? AND id_intervention = ?');
+    $requete->execute([$idUtilisateur, $idIntervention]);
+    if ($requete->fetchColumn() == 0) {
+        return 'Cette intervention ne vous est pas attribuée.';
+    }
+
+    if ($intervention['statut'] != 'attribuee') {
+        return 'Cette intervention ne peut plus être annulée.';
+    }
+
+    // ! Impossible d'annuler une intervention déjà commencée
+    $debut = $intervention['date_intervention'] . ' ' . $intervention['heure_debut'];
+    if ($debut <= date('Y-m-d H:i:s')) {
+        return 'Cette intervention a déjà commencé.';
+    }
+
+    // ! On supprime l'affectation, l'intervention redevient « à pourvoir »
+    $requete = $bdd->prepare('DELETE FROM affectation WHERE id_utilisateur = ? AND id_intervention = ?');
+    $requete->execute([$idUtilisateur, $idIntervention]);
+
+    $requete = $bdd->prepare('UPDATE intervention SET statut = \'a_pourvoir\' WHERE id_intervention = ?');
+    $requete->execute([$idIntervention]);
+
+    return true;
+}
+
+//? HISTORIQUE
+// ! Calcule la durée d'une intervention à partir des heures (ex. 8 h ou 3,5 h)
+function dureeIntervention($heureDebut, $heureFin)
+{
+    $secondes = strtotime($heureFin) - strtotime($heureDebut);
+    $heures = $secondes / 3600;
+
+    return str_replace('.', ',', $heures) . ' h';
+}
+
+// ! Interventions terminées d'un salarié (les plus récentes en premier)
+function obtenirHistorique($idUtilisateur)
+{
+    global $bdd;
+
+    $requete = $bdd->prepare(
+        'SELECT intervention.id_intervention, intervention.intitule, intervention.date_intervention,
+                intervention.heure_debut, intervention.heure_fin,
+                avion.modele, avion.immatriculation
+         FROM affectation
+         INNER JOIN intervention ON affectation.id_intervention = intervention.id_intervention
+         INNER JOIN avion ON intervention.id_avion = avion.id_avion
+         WHERE affectation.id_utilisateur = :utilisateur AND intervention.statut = :statut
+         ORDER BY intervention.date_intervention DESC, intervention.heure_debut DESC'
+    );
+    $requete->execute(['utilisateur' => $idUtilisateur, 'statut' => 'terminee']);
+
+    return $requete->fetchAll(PDO::FETCH_ASSOC);
 }

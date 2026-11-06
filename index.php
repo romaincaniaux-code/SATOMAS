@@ -28,6 +28,14 @@ switch ($page) {
     case 'fiche':
         require 'CONTROLLER/fiche_controller.php';
         break;
+    
+    case 'planning':
+        require 'CONTROLLER/planning_controller.php';
+        break;
+    
+    case 'historique':
+        require 'CONTROLLER/historique_controller.php';
+        break;
         
     default:
         include 'CONTROLLER/accueil_controller.php';
