@@ -1,32 +1,56 @@
 <?php include 'header.php'; ?>
 
-<p><a href="index.php?page=catalogue">← Retour au catalogue</a></p>
+<main class="contenu">
+    <p><a href="index.php?page=catalogue">← Retour au catalogue</a></p>
 
-<h2><?php echo htmlspecialchars($intervention['intitule']); ?></h2>
+    <?php if (isset($_GET['ok'])) { ?>
+        <p class="message-ok">Intervention acceptée.</p>
+    <?php } ?>
 
-<?php if (isset($_GET['ok'])) { ?>
-    <p style="color:green;">Intervention acceptée.</p>
-<?php } ?>
+    <?php if ($message != '') { ?>
+        <p class="message-erreur"><?php echo htmlspecialchars($message); ?></p>
+    <?php } ?>
 
-<?php if ($message != '') { ?>
-    <p style="color:red;"><?php echo htmlspecialchars($message); ?></p>
-<?php } ?>
+    <div class="fiche">
+        <section class="panneau">
+            <span class="badge"><?php echo htmlspecialchars($intervention['categorie']); ?></span>
+            <h1><?php echo htmlspecialchars($intervention['intitule']); ?></h1>
+            <p class="info"><?php echo htmlspecialchars($intervention['description']); ?></p>
+        </section>
 
-<p>Catégorie : <?php echo htmlspecialchars($intervention['categorie']); ?></p>
-<p>Avion : <?php echo htmlspecialchars($intervention['modele']); ?> (<?php echo htmlspecialchars($intervention['immatriculation']); ?>)</p>
-<p>Lieu : <?php echo htmlspecialchars($intervention['lieu']); ?></p>
-<p>Date : <?php echo htmlspecialchars($intervention['date_intervention']); ?></p>
-<p>Horaires : <?php echo substr($intervention['heure_debut'], 0, 5); ?> à <?php echo substr($intervention['heure_fin'], 0, 5); ?></p>
-<p>Statut : <?php echo libelleStatut($intervention['statut']); ?></p>
-<p>Description : <?php echo htmlspecialchars($intervention['description']); ?></p>
+        <aside class="panneau">
+            <h2>Détails</h2>
+            <div class="detail-ligne">
+                <span>Avion</span>
+                <span><?php echo htmlspecialchars($intervention['modele']); ?> (<?php echo htmlspecialchars($intervention['immatriculation']); ?>)</span>
+            </div>
+            <div class="detail-ligne">
+                <span>Lieu</span>
+                <span><?php echo htmlspecialchars($intervention['lieu']); ?></span>
+            </div>
+            <div class="detail-ligne">
+                <span>Date</span>
+                <span><?php echo date('d/m/Y', strtotime($intervention['date_intervention'])); ?></span>
+            </div>
+            <div class="detail-ligne">
+                <span>Horaires</span>
+                <span><?php echo substr($intervention['heure_debut'], 0, 5); ?> - <?php echo substr($intervention['heure_fin'], 0, 5); ?></span>
+            </div>
+            <div class="detail-ligne">
+                <span>Statut</span>
+                <span class="badge statut-<?php echo $intervention['statut']; ?>"><?php echo libelleStatut($intervention['statut']); ?></span>
+            </div>
 
-<?php if ($peutAccepter) { ?>
-    <form method="post" action="index.php?page=fiche&id=<?php echo $intervention['id_intervention']; ?>">
-        <button type="submit" name="accepter">Accepter l'intervention</button>
-    </form>
-<?php } else { ?>
-    <button type="button" disabled>Accepter l'intervention</button>
-    <p><?php echo htmlspecialchars($raison); ?></p>
-<?php } ?>
+            <?php if ($peutAccepter) { ?>
+                <form method="post" action="index.php?page=fiche&id=<?php echo $intervention['id_intervention']; ?>">
+                    <button class="btn btn-orange" type="submit" name="accepter">Accepter l'intervention</button>
+                </form>
+            <?php } else { ?>
+                <button class="btn" type="button" disabled>Accepter l'intervention</button>
+                <p class="raison"><?php echo htmlspecialchars($raison); ?></p>
+            <?php } ?>
+        </aside>
+    </div>
+</main>
 
 <?php include 'footer.php'; ?>
