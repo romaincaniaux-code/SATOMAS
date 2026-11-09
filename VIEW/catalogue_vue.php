@@ -33,6 +33,11 @@
     <div class="grille">
         <?php foreach ($interventions as $intervention) { ?>
             <article class="carte">
+                <?php if ($intervention['image'] != '') { ?>
+                    <img class="carte-image" src="image/interventions/<?php echo htmlspecialchars($intervention['image']); ?>" alt="">
+                <?php } else { ?>
+                    <div class="carte-image vide">Pas d'image</div>
+                <?php } ?>
                 <span class="badge statut-<?php echo $intervention['statut']; ?>">
                     <?php echo libelleStatut($intervention['statut']); ?>
                 </span>
