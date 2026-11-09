@@ -55,7 +55,7 @@ function obtenirInterventions($motCle = '', $idCategorie = '', $date = '')
     global $bdd;
 
     $sql = 'SELECT id_intervention, intitule, date_intervention,
-                   heure_debut, heure_fin, lieu, statut
+                   heure_debut, heure_fin, lieu, statut, image
             FROM intervention
             WHERE 1 = 1';
     $parametres = array();
@@ -87,12 +87,12 @@ function obtenirInterventions($motCle = '', $idCategorie = '', $date = '')
     return $requete->fetchAll(PDO::FETCH_ASSOC);
 }
 
-// ! Liste des catégories (pour la liste déroulante)
+// ! Liste des catégories (pour la liste déroulante et la gestion)
 function obtenirCategories()
 {
     global $bdd;
 
-    $requete = $bdd->query('SELECT id_categorie, nom FROM categorie ORDER BY nom ASC');
+    $requete = $bdd->query('SELECT id_categorie, nom, description FROM categorie ORDER BY nom ASC');
 
     return $requete->fetchAll(PDO::FETCH_ASSOC);
 }
@@ -106,7 +106,7 @@ function obtenirInterventionParId($idIntervention)
         'SELECT intervention.id_intervention, intervention.intitule, intervention.description,
                 intervention.date_intervention, intervention.heure_debut, intervention.heure_fin,
                 intervention.lieu, intervention.statut,
-                categorie.nom AS categorie, avion.modele, avion.immatriculation
+                categorie.nom AS categorie, avion.modele, avion.immatriculation, intervention.image
          FROM intervention
          INNER JOIN categorie ON intervention.id_categorie = categorie.id_categorie
          INNER JOIN avion ON intervention.id_avion = avion.id_avion
@@ -256,4 +256,335 @@ function obtenirHistorique($idUtilisateur)
     $requete->execute(['utilisateur' => $idUtilisateur, 'statut' => 'terminee']);
 
     return $requete->fetchAll(PDO::FETCH_ASSOC);
+}
+//GESTIONNAIRE
+// ! Toutes les interventions avec leur avion, filtre facultatif par date
+function obtenirSuivi($date = '')
+{
+    global $bdd;
+
+    $sql = 'SELECT intervention.id_intervention, intervention.intitule, intervention.date_intervention,
+                   intervention.heure_debut, intervention.heure_fin, intervention.lieu, intervention.statut,
+                   avion.modele, avion.immatriculation
+            FROM intervention
+            INNER JOIN avion ON intervention.id_avion = avion.id_avion
+            WHERE 1 = 1';
+    $parametres = array();
+
+    // ! Filtre par date
+    if ($date != '') {
+        $sql = $sql . ' AND intervention.date_intervention = :date';
+        $parametres['date'] = $date;
+    }
+
+    $sql = $sql . ' ORDER BY intervention.date_intervention ASC, intervention.heure_debut ASC';
+
+    $requete = $bdd->prepare($sql);
+    $requete->execute($parametres);
+
+    return $requete->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// ! Salarié affecté à une intervention (false si personne n'est affecté)
+function obtenirSalarieAffecte($idIntervention)
+{
+    global $bdd;
+
+    $requete = $bdd->prepare(
+        'SELECT utilisateur.id_utilisateur, utilisateur.nom, utilisateur.prenom
+         FROM affectation
+         INNER JOIN utilisateur ON affectation.id_utilisateur = utilisateur.id_utilisateur
+         WHERE affectation.id_intervention = ?'
+    );
+    $requete->execute([$idIntervention]);
+
+    return $requete->fetch(PDO::FETCH_ASSOC);
+}
+
+// ! Liste des salariés (pour la liste déroulante)
+function obtenirSalaries()
+{
+    global $bdd;
+
+    $requete = $bdd->prepare(
+        'SELECT id_utilisateur, nom, prenom
+         FROM utilisateur
+         WHERE role = :role
+         ORDER BY nom ASC'
+    );
+    $requete->execute(['role' => 'salarie']);
+
+    return $requete->fetchAll(PDO::FETCH_ASSOC);
+}
+
+//? CATEGORIES
+// ! Une catégorie par son numéro (false si elle n'existe pas)
+function obtenirCategorieParId($idCategorie)
+{
+    global $bdd;
+
+    $requete = $bdd->prepare('SELECT id_categorie, nom, description FROM categorie WHERE id_categorie = ?');
+    $requete->execute([$idCategorie]);
+
+    return $requete->fetch(PDO::FETCH_ASSOC);
+}
+
+// ! Ajoute une catégorie
+function ajouterCategorie($nom, $description)
+{
+    global $bdd;
+
+    $requete = $bdd->prepare('INSERT INTO categorie (nom, description) VALUES (?, ?)');
+    $requete->execute([$nom, $description]);
+}
+
+// ! Modifie une catégorie
+function modifierCategorie($idCategorie, $nom, $description)
+{
+    global $bdd;
+
+    $requete = $bdd->prepare('UPDATE categorie SET nom = ?, description = ? WHERE id_categorie = ?');
+    $requete->execute([$nom, $description, $idCategorie]);
+}
+
+// ! Supprime une catégorie : renvoie true, ou un message d'erreur
+function supprimerCategorie($idCategorie)
+{
+    global $bdd;
+
+    // ! Impossible de supprimer une catégorie utilisée par des interventions
+    $requete = $bdd->prepare('SELECT COUNT(*) FROM intervention WHERE id_categorie = ?');
+    $requete->execute([$idCategorie]);
+    if ($requete->fetchColumn() > 0) {
+        return 'Suppression impossible : des interventions utilisent cette catégorie.';
+    }
+
+    $requete = $bdd->prepare('DELETE FROM categorie WHERE id_categorie = ?');
+    $requete->execute([$idCategorie]);
+
+    return true;
+}
+
+//? GESTION DU CATALOGUE
+// ! Liste des avions (pour la liste déroulante)
+function obtenirAvions()
+{
+    global $bdd;
+
+    $requete = $bdd->query('SELECT id_avion, modele, immatriculation FROM avion ORDER BY modele ASC');
+
+    return $requete->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// ! Toutes les interventions avec catégorie et image (pour la page de gestion)
+function obtenirInterventionsGestion()
+{
+    global $bdd;
+
+    $requete = $bdd->query(
+        'SELECT intervention.id_intervention, intervention.intitule, intervention.date_intervention,
+                intervention.statut, intervention.image, intervention.mis_en_avant,
+                categorie.nom AS categorie
+         FROM intervention
+         INNER JOIN categorie ON intervention.id_categorie = categorie.id_categorie
+         ORDER BY intervention.date_intervention ASC, intervention.heure_debut ASC'
+    );
+
+    return $requete->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// ! Ajoute une intervention (toujours « à pourvoir » au départ)
+function ajouterIntervention($idCategorie, $idAvion, $intitule, $description, $date, $heureDebut, $heureFin, $lieu, $image, $misEnAvant)
+{
+    global $bdd;
+
+    $requete = $bdd->prepare(
+        'INSERT INTO intervention (id_categorie, id_avion, intitule, description, date_intervention, heure_debut, heure_fin, lieu, statut, image, mis_en_avant)
+         VALUES (:categorie, :avion, :intitule, :description, :date,
+                 :debut, :fin, :lieu, :statut, :image, :avant)'
+    );
+    $requete->execute([
+        'categorie' => $idCategorie,
+        'avion' => $idAvion,
+        'intitule' => $intitule,
+        'description' => $description,
+        'date' => $date,
+        'debut' => $heureDebut,
+        'fin' => $heureFin,
+        'lieu' => $lieu,
+        'statut' => 'a_pourvoir',
+        'image' => $image,
+        'avant' => $misEnAvant
+    ]);
+}
+// ! Les 3 prochaines interventions « mises en avant » (page d'accueil)
+function obtenirInterventionsMisesEnAvant()
+{
+    global $bdd;
+
+    $requete = $bdd->query(
+        'SELECT id_intervention, intitule, date_intervention, heure_debut, heure_fin, lieu, statut, image
+         FROM intervention
+         WHERE mis_en_avant = 1
+         ORDER BY date_intervention ASC, heure_debut ASC
+         LIMIT 3'
+    );
+
+    return $requete->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// ! Une intervention telle qu'elle est en base (pour pré-remplir le formulaire de modification)
+function obtenirInterventionBrute($idIntervention)
+{
+    global $bdd;
+
+    $requete = $bdd->prepare(
+        'SELECT id_intervention, id_categorie, id_avion, intitule, description,
+                date_intervention, heure_debut, heure_fin, lieu, image, mis_en_avant
+         FROM intervention
+         WHERE id_intervention = ?'
+    );
+    $requete->execute([$idIntervention]);
+
+    return $requete->fetch(PDO::FETCH_ASSOC);
+}
+
+// ! Modifie une intervention (le statut ne change pas ici)
+function modifierIntervention($idIntervention, $idCategorie, $idAvion, $intitule, $description, $date, $heureDebut, $heureFin, $lieu, $image, $misEnAvant)
+{
+    global $bdd;
+
+    $requete = $bdd->prepare(
+        'UPDATE intervention
+         SET id_categorie = :categorie, id_avion = :avion, intitule = :intitule,
+             description = :description, date_intervention = :date,
+             heure_debut = :debut, heure_fin = :fin, lieu = :lieu,
+             image = :image, mis_en_avant = :avant
+         WHERE id_intervention = :id'
+    );
+    $requete->execute([
+        'categorie' => $idCategorie,
+        'avion' => $idAvion,
+        'intitule' => $intitule,
+        'description' => $description,
+        'date' => $date,
+        'debut' => $heureDebut,
+        'fin' => $heureFin,
+        'lieu' => $lieu,
+        'image' => $image,
+        'avant' => $misEnAvant,
+        'id' => $idIntervention
+    ]);
+}
+
+// ! Supprime une intervention : renvoie true, ou un message d'erreur
+function supprimerIntervention($idIntervention)
+{
+    global $bdd;
+
+    // ! Impossible de supprimer une intervention à laquelle un salarié est affecté
+    $requete = $bdd->prepare('SELECT COUNT(*) FROM affectation WHERE id_intervention = ?');
+    $requete->execute([$idIntervention]);
+    if ($requete->fetchColumn() > 0) {
+        return 'Suppression impossible : un salarié est affecté à cette intervention.';
+    }
+
+    // ! On garde le nom de l'image pour supprimer aussi le fichier
+    $intervention = obtenirInterventionBrute($idIntervention);
+
+    $requete = $bdd->prepare('DELETE FROM intervention WHERE id_intervention = ?');
+    $requete->execute([$idIntervention]);
+
+    if ($intervention && $intervention['image'] != '' && file_exists('image/interventions/' . $intervention['image'])) {
+        unlink('image/interventions/' . $intervention['image']);
+    }
+
+    return true;
+}
+//? COMPTES
+// ! Nom lisible d'un rôle
+function libelleRole($role)
+{
+    if ($role == 'salarie') {
+        return 'Salarié';
+    } elseif ($role == 'gestionnaire') {
+        return 'Gestionnaire';
+    } else {
+        return 'Administrateur';
+    }
+}
+
+// ! Liste de tous les comptes
+function obtenirUtilisateurs()
+{
+    global $bdd;
+
+    $requete = $bdd->query(
+        'SELECT id_utilisateur, nom, prenom, email, service, role, date_creation
+         FROM utilisateur
+         ORDER BY nom ASC'
+    );
+
+    return $requete->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// ! Un compte par son numéro (false s'il n'existe pas)
+function obtenirUtilisateurParId($idUtilisateur)
+{
+    global $bdd;
+
+    $requete = $bdd->prepare('SELECT id_utilisateur, nom, prenom, email, service, role FROM utilisateur WHERE id_utilisateur = ?');
+    $requete->execute([$idUtilisateur]);
+
+    return $requete->fetch(PDO::FETCH_ASSOC);
+}
+
+// ! Cet email est-il déjà utilisé par un compte ?
+function emailExiste($email)
+{
+    global $bdd;
+
+    $requete = $bdd->prepare('SELECT COUNT(*) FROM utilisateur WHERE email = ?');
+    $requete->execute([$email]);
+
+    return $requete->fetchColumn() > 0;
+}
+
+// ! Crée un compte (le mot de passe est enregistré chiffré)
+function ajouterUtilisateur($nom, $prenom, $email, $service, $role, $motDePasse)
+{
+    global $bdd;
+
+    $requete = $bdd->prepare(
+        'INSERT INTO utilisateur (nom, prenom, email, service, mot_de_passe, role)
+         VALUES (?, ?, ?, ?, ?, ?)'
+    );
+    $requete->execute([$nom, $prenom, $email, $service, password_hash($motDePasse, PASSWORD_DEFAULT), $role]);
+}
+
+// ! Change le rôle d'un compte
+function modifierRoleUtilisateur($idUtilisateur, $role)
+{
+    global $bdd;
+
+    $requete = $bdd->prepare('UPDATE utilisateur SET role = ? WHERE id_utilisateur = ?');
+    $requete->execute([$role, $idUtilisateur]);
+}
+
+// ! Supprime un compte : renvoie true, ou un message d'erreur
+function supprimerUtilisateur($idUtilisateur)
+{
+    global $bdd;
+
+    // ! Impossible de supprimer un compte qui a des interventions affectées
+    $requete = $bdd->prepare('SELECT COUNT(*) FROM affectation WHERE id_utilisateur = ?');
+    $requete->execute([$idUtilisateur]);
+    if ($requete->fetchColumn() > 0) {
+        return 'Suppression impossible : des interventions sont affectées à ce compte.';
+    }
+
+    $requete = $bdd->prepare('DELETE FROM utilisateur WHERE id_utilisateur = ?');
+    $requete->execute([$idUtilisateur]);
+
+    return true;
 }

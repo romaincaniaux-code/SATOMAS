@@ -29,6 +29,13 @@
                 <a href="index.php?page=planning" class="<?php if ($page == 'planning') { echo 'actif'; } ?>">Mon planning</a>
                 <a href="index.php?page=historique" class="<?php if ($page == 'historique') { echo 'actif'; } ?>">Mon historique</a>
             <?php } ?>
+            <?php if ($roleUtilisateur == 'gestionnaire' || $roleUtilisateur == 'administrateur') { ?>
+                <a href="index.php?page=suivi" class="<?php if ($page == 'suivi') { echo 'actif'; } ?>">Suivi activité</a>
+                <a href="index.php?page=gestion_catalogue" class="<?php if ($page == 'gestion_catalogue' || $page == 'intervention_form' || $page == 'categories') { echo 'actif'; } ?>">Gestion catalogue</a>
+                <?php if ($roleUtilisateur == 'administrateur') { ?>
+                <a href="index.php?page=comptes" class="<?php if ($page == 'comptes') { echo 'actif'; } ?>">Gestion comptes</a>
+            <?php } ?>
+            <?php } ?>
         </nav>
 
         <div class="utilisateur">

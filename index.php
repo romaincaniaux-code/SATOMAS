@@ -36,6 +36,26 @@ switch ($page) {
     case 'historique':
         require 'CONTROLLER/historique_controller.php';
         break;
+
+    case 'suivi':
+        require 'CONTROLLER/suivi_controller.php';
+        break;
+    
+    case 'categories':
+        require 'CONTROLLER/categorie_controller.php';
+        break;
+
+    case 'gestion_catalogue':
+        require 'CONTROLLER/gestion_catalogue_controller.php';
+        break;
+
+    case 'intervention_form':
+        require 'CONTROLLER/intervention_form_controller.php';
+        break;
+    
+    case 'comptes':
+        require 'CONTROLLER/comptes_controller.php';
+        break;
         
     default:
         include 'CONTROLLER/accueil_controller.php';
