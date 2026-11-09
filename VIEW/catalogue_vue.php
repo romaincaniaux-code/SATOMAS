@@ -26,8 +26,12 @@
         <a class="btn btn-contour" href="index.php?page=catalogue">Réinitialiser</a>
     </form>
 
-    <?php if (count($interventions) == 0) { ?>
+    <?php if ($total == 0) { ?>
         <p>Aucune intervention ne correspond à votre recherche.</p>
+    <?php } else { ?>
+        <p class="compteur">
+            <?php echo $total; ?> intervention(s) trouvée(s) - page <?php echo $pageCourante; ?> sur <?php echo $nbPages; ?>
+        </p>
     <?php } ?>
 
     <div class="grille">
@@ -56,6 +60,32 @@
             </article>
         <?php } ?>
     </div>
+
+    <?php if ($nbPages > 1) { ?>
+        <nav class="pagination" aria-label="Pagination du catalogue">
+
+            <?php if ($pageCourante > 1) { ?>
+                <a href="index.php?page=catalogue<?php echo htmlspecialchars($filtresUrl); ?>&amp;p=<?php echo $pageCourante - 1; ?>">‹ Précédent</a>
+            <?php } else { ?>
+                <span class="inactif">‹ Précédent</span>
+            <?php } ?>
+
+            <?php for ($i = 1; $i <= $nbPages; $i++) { ?>
+                <?php if ($i == $pageCourante) { ?>
+                    <span class="courante"><?php echo $i; ?></span>
+                <?php } else { ?>
+                    <a href="index.php?page=catalogue<?php echo htmlspecialchars($filtresUrl); ?>&amp;p=<?php echo $i; ?>"><?php echo $i; ?></a>
+                <?php } ?>
+            <?php } ?>
+
+            <?php if ($pageCourante < $nbPages) { ?>
+                <a href="index.php?page=catalogue<?php echo htmlspecialchars($filtresUrl); ?>&amp;p=<?php echo $pageCourante + 1; ?>">Suivant ›</a>
+            <?php } else { ?>
+                <span class="inactif">Suivant ›</span>
+            <?php } ?>
+
+        </nav>
+    <?php } ?>
 </main>
 
 <?php include 'footer.php'; ?>

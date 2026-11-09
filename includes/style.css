@@ -539,3 +539,49 @@ td {
 .role-administrateur {
   background: #0b223d;
 }
+/* ! Pagination du catalogue */
+.compteur {
+  margin: 0 0 16px;
+  color: #758197;
+  font-size: 14px;
+}
+
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 32px;
+}
+
+.pagination a,
+.pagination span {
+  min-width: 40px;
+  padding: 8px 14px;
+  border: 1px solid #dce3ed;
+  border-radius: 8px;
+  background: white;
+  font-size: 14px;
+  text-align: center;
+  text-decoration: none;
+}
+
+.pagination a {
+  color: #2e62a8;
+}
+
+.pagination a:hover {
+  background: #e8f0fa;
+}
+
+.pagination .courante {
+  border-color: #2e62a8;
+  background: #2e62a8;
+  color: white;
+  font-weight: bold;
+}
+
+.pagination .inactif {
+  background: #f3f5f8;
+  color: #a5afbf;
+}

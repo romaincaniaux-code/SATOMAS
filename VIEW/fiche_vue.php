@@ -13,6 +13,9 @@
 
     <div class="fiche">
         <section class="panneau">
+            <?php if ($intervention['image'] != '') { ?>
+                <img class="fiche-image" src="image/interventions/<?php echo htmlspecialchars($intervention['image']); ?>" alt="">
+            <?php } ?>
             <span class="badge"><?php echo htmlspecialchars($intervention['categorie']); ?></span>
             <h1><?php echo htmlspecialchars($intervention['intitule']); ?></h1>
             <p class="info"><?php echo htmlspecialchars($intervention['description']); ?></p>
